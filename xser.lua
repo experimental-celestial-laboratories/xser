@@ -17,7 +17,7 @@ local TYPE_TABLE_ARRAY = "\15"
 local TYPE_TABLE_MAP = "\16"
 local TYPE_TABLE_ARRAY_MAP = "\17"
 
-local pack, unpack, next, concat, sub, find, pairs = string.pack, string.unpack, next, table.concat, string.sub, string.find, pairs
+local pack, unpack, next, concat, sub, find = string.pack, string.unpack, next, table.concat, string.sub, string.find
 
 --- Serialises a Lua value into a binary string that can be deserialised with `xser.unserialise`
 ---@param value nil|number|boolean|string|boolean|table the value to serialise
@@ -74,7 +74,7 @@ local function serialise(value)
                 buffer[#buffer+1] = serialise(v)
                 k, v = next(value, k)
             end
-            buffer[#buffer+1] = "\0"
+            buffer[#buffer+1] = TYPE_NIL
             return concat(buffer)
 
         elseif next(value, #value) == nil then -- this is an array
@@ -82,7 +82,7 @@ local function serialise(value)
             for i=1, #value do
                 buffer[#buffer+1] = serialise(value[i])
             end
-            buffer[#buffer+1] = "\0"
+            buffer[#buffer+1] = TYPE_NIL
             return concat(buffer)
 
         else -- this is an array and a map
@@ -90,14 +90,14 @@ local function serialise(value)
             for i=1, #value do
                 buffer[#buffer+1] = serialise(value[i])
             end
-            buffer[#buffer+1] = "\0"
+            buffer[#buffer+1] = TYPE_NIL
             k, v = next(value, #value)
             while k do
                 buffer[#buffer+1] = serialise(k)
                 buffer[#buffer+1] = serialise(v)
                 k, v = next(value, k)
             end
-            buffer[#buffer+1] = "\0"
+            buffer[#buffer+1] = TYPE_NIL
             return concat(buffer)
         end
     else
@@ -156,7 +156,7 @@ local function deserialise(bin, pos)
         return {}, pos
     elseif type == TYPE_TABLE_ARRAY then
         local array = {}
-        while sub(bin, pos, pos) ~= "\0" do
+        while sub(bin, pos, pos) ~= TYPE_NIL do
             array[#array+1], pos = deserialise(bin, pos)
         end
         return array, pos
