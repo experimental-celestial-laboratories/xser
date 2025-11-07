@@ -147,10 +147,10 @@ local function deserialise(bin, pos)
     -- deserialise strings
     elseif type == TYPE_STRING then
         local str, len = unpack("<s4", bin, pos + 1)
-        return str, pos + len + 1
+        return str, len
     elseif type == TYPE_CSTRING then
         local str, len = unpack("z", bin, pos + 1)
-        return str, pos + len + 1
+        return str, len
 
     -- deserialise tables
     elseif type == TYPE_TABLE_EMPTY then
