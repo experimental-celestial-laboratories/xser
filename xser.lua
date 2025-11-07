@@ -174,6 +174,8 @@ local function deserialise(bin, pos)
         while sub(bin, pos, pos) ~= TYPE_NIL do
             arrayMap[#arrayMap+1], pos = deserialise(bin, pos)
         end
+        -- Skip nil terminator
+        pos = pos + 1
         local k
         while sub(bin, pos, pos) ~= TYPE_NIL do
             k, pos = deserialise(bin, pos)
