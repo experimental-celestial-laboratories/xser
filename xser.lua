@@ -113,57 +113,54 @@ end
 local function deserialise(bin, pos)
     pos = pos or 1
     local type = sub(bin, pos, pos)
+    pos = pos + 1
 
     -- deserialise nil
     if type == TYPE_NIL then
-        return nil, pos + 1
+        return nil, pos
 
     -- deserialise numbers
     elseif type == TYPE_U8 then
-        return unpack("<B", sub(bin, pos + 1)), pos + 2
+        return unpack("<B", bin, pos)
     elseif type == TYPE_I8 then
-        return unpack("<b", sub(bin, pos + 1)), pos + 2
+        return unpack("<b", bin, pos)
     elseif type == TYPE_U16 then
-        return unpack("<H", sub(bin, pos + 1)), pos + 3
+        return unpack("<H", bin, pos)
     elseif type == TYPE_I16 then
-        return unpack("<h", sub(bin, pos + 1)), pos + 3
+        return unpack("<h", bin, pos)
     elseif type == TYPE_U32 then
-        return unpack("<I", sub(bin, pos + 1)), pos + 5
+        return unpack("<I", bin, pos)
     elseif type == TYPE_I32 then
-        return unpack("<i", sub(bin, pos + 1)), pos + 5
+        return unpack("<i", bin, pos)
     elseif type == TYPE_U64 then
-        return unpack("<J", sub(bin, pos + 1)), pos + 9
+        return unpack("<J", bin, pos)
     elseif type == TYPE_I64 then
-        return unpack("<j", sub(bin, pos + 1)), pos + 9
+        return unpack("<j", bin, pos)
     elseif type == TYPE_F64 then
-        return unpack("<d", sub(bin, pos + 1)), pos + 9
+        return unpack("<d", bin, pos)
 
     -- deserialise booleans
     elseif type == TYPE_BOOL_FALSE then
-        return false, pos + 1
+        return false, pos
     elseif type == TYPE_BOOL_TRUE then
-        return true, pos + 1
+        return true, pos
 
     -- deserialise strings
     elseif type == TYPE_STRING then
-        local str, len = unpack("<s4", bin, pos + 1)
-        return str, len
+        return unpack("<s4", bin, pos)
     elseif type == TYPE_CSTRING then
-        local str, len = unpack("z", bin, pos + 1)
-        return str, len
+        return unpack("z", bin, pos)
 
     -- deserialise tables
     elseif type == TYPE_TABLE_EMPTY then
-        return {}, pos + 1
+        return {}, pos
     elseif type == TYPE_TABLE_ARRAY then
-        pos = pos + 1
         local array = {}
         while sub(bin, pos, pos) ~= "\0" do
             array[#array+1], pos = deserialise(bin, pos)
         end
         return array, pos
     elseif type == TYPE_TABLE_MAP then
-        pos = pos + 1
         local map = {}
         local k
         while sub(bin, pos, pos) ~= TYPE_NIL do
@@ -173,12 +170,10 @@ local function deserialise(bin, pos)
         end
         return map, pos
     elseif type == TYPE_TABLE_ARRAY_MAP then
-        pos = pos + 1
         local arrayMap = {}
         while sub(bin, pos, pos) ~= TYPE_NIL do
             arrayMap[#arrayMap+1], pos = deserialise(bin, pos)
         end
-        pos = pos + 1
         local k
         while sub(bin, pos, pos) ~= TYPE_NIL do
             k, pos = deserialise(bin, pos)
