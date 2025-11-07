@@ -56,9 +56,9 @@ local function serialise(value)
         return value and TYPE_BOOL_TRUE or TYPE_BOOL_FALSE
     elseif type(value) == "string" then
         if find(value, "\0") then
-            return concat{TYPE_STRING, pack("<I", #value), value}
+            return TYPE_STRING .. pack("<s4", value)
         else
-            return concat{TYPE_CSTRING, value, "\0"}
+            return TYPE_CSTRING .. pack("z", value)
         end
     elseif type(value) == "table" then
         -- check empty table
@@ -146,12 +146,13 @@ local function deserialise(bin, pos)
 
     -- deserialise strings
     elseif type == TYPE_STRING then
-        local len = unpack("<I", sub(bin, pos + 1, pos + 4))
-        return sub(bin, pos + 5, pos + 4 + len), pos + 5 + len
+        local str, len = unpack("<s4", bin, pos + 1)
+        return str, pos + len + 1
     elseif type == TYPE_CSTRING then
-        local idx = bin:find("\0", pos, true)
-        return sub(bin, pos + 1, idx - 1), idx + 1
+        local str, len = unpack("z", bin, pos + 1)
+        return str, pos + len + 1
 
+    -- deserialise tables
     elseif type == TYPE_TABLE_EMPTY then
         return {}, pos + 1
     elseif type == TYPE_TABLE_ARRAY then
@@ -165,21 +166,23 @@ local function deserialise(bin, pos)
         pos = pos + 1
         local map = {}
         local k
-        while sub(bin, pos, pos) ~= "\0" do
+        while sub(bin, pos, pos) ~= TYPE_NIL do
             k, pos = deserialise(bin, pos)
+            ---@diagnostic disable-next-line: need-check-nil
             map[k], pos = deserialise(bin, pos)
         end
         return map, pos
     elseif type == TYPE_TABLE_ARRAY_MAP then
         pos = pos + 1
         local arrayMap = {}
-        while sub(bin, pos, pos) ~= "\0" do
+        while sub(bin, pos, pos) ~= TYPE_NIL do
             arrayMap[#arrayMap+1], pos = deserialise(bin, pos)
         end
         pos = pos + 1
         local k
-        while sub(bin, pos, pos) ~= "\0" do
+        while sub(bin, pos, pos) ~= TYPE_NIL do
             k, pos = deserialise(bin, pos)
+            ---@diagnostic disable-next-line: need-check-nil
             arrayMap[k], pos = deserialise(bin, pos)
         end
         return arrayMap, pos
