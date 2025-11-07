@@ -10,12 +10,14 @@ local TYPE_I64 = "\8"
 local TYPE_F64 = "\9"
 local TYPE_BOOL_FALSE = "\10"
 local TYPE_BOOL_TRUE = "\11"
-local TYPE_STRING = "\12"
-local TYPE_CSTRING = "\13"
-local TYPE_TABLE_EMPTY = "\14"
-local TYPE_TABLE_ARRAY = "\15"
-local TYPE_TABLE_MAP = "\16"
-local TYPE_TABLE_ARRAY_MAP = "\17"
+local TYPE_STRING_U8 = "\12"
+local TYPE_STRING_U16 = "\13"
+local TYPE_STRING_U32 = "\14"
+local TYPE_CSTRING = "\15"
+local TYPE_TABLE_EMPTY = "\16"
+local TYPE_TABLE_ARRAY = "\17"
+local TYPE_TABLE_MAP = "\18"
+local TYPE_TABLE_ARRAY_MAP = "\19"
 
 local pack, unpack, next, concat, sub, find = string.pack, string.unpack, next, table.concat, string.sub, string.find
 
@@ -56,7 +58,14 @@ local function serialise(value)
         return value and TYPE_BOOL_TRUE or TYPE_BOOL_FALSE
     elseif type(value) == "string" then
         if find(value, "\0") then
-            return TYPE_STRING .. pack("<s4", value)
+            local len = #value
+            if len <= 255 then
+                return TYPE_STRING_U8 .. pack("<s1", value)
+            elseif len <= 65536 then
+                return TYPE_STRING_U16 .. pack("<s2", value)
+            else
+                return TYPE_STRING_U32 .. pack("<s4", value)
+            end
         else
             return TYPE_CSTRING .. pack("z", value)
         end
@@ -108,7 +117,7 @@ end
 --- Deserialises a binary string into a Lua value
 --- @param bin string the binary string to deserialise
 --- @param pos? number the position in the binary string to start deserialising from
---- @return nil|number|boolean|string|table value the deserialised valueany|nil value the deserialised value
+--- @return nil|number|boolean|string|table value the deserialised value
 --- @return integer pos the position in the binary string after deserialising
 local function deserialise(bin, pos)
     pos = pos or 1
@@ -146,7 +155,11 @@ local function deserialise(bin, pos)
         return true, pos
 
     -- deserialise strings
-    elseif type == TYPE_STRING then
+    elseif type == TYPE_STRING_U8 then
+        return unpack("<s1", bin, pos)
+    elseif type == TYPE_STRING_U16 then
+        return unpack("<s2", bin, pos)
+    elseif type == TYPE_STRING_U32 then
         return unpack("<s4", bin, pos)
     elseif type == TYPE_CSTRING then
         return unpack("z", bin, pos)
